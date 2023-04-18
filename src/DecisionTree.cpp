@@ -80,6 +80,7 @@ void DecisionTree::SetRangedCombatNode(RangedCombatCondition* node)
 
 EnemyHealthCondition* DecisionTree::GetEnemyHealthNode() const
 {
+	if (this != nullptr)
 	return m_EnemyHealthNode;
 }
 

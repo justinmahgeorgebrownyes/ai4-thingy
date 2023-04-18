@@ -9,6 +9,7 @@
 #include "Renderer.h"
 #include "Util.h"
 #include <fstream>
+#include "InputType.h"
 
 PlayScene::PlayScene()
 {
@@ -30,8 +31,8 @@ void PlayScene::Draw()
 				obstacle->GetHeight() * 0.5f), obstacle->GetWidth(), obstacle->GetHeight());
 		}
 		//7.3
-		//const auto detected = m_pStarShip->GetTree()->GetPlayerDetectedNode()->GetDetected();
-		//Util::DrawCircle(m_pStarShip->GetTransform()->position, 300.0f, detected ? glm::vec4(0, 1, 0, 1) : glm::vec4(1, 0, 0, 1));
+	//	const auto detected = m_pStarShip->GetTree()->GetPlayerDetectedNode()->GetDetected();
+	//	Util::DrawCircle(m_pStarShip->GetTransform()->position, 300.0f, detected ? glm::vec4(0, 1, 0, 1) : glm::vec4(1, 0, 0, 1));
 	}
 
 	SDL_SetRenderDrawColor(Renderer::Instance().GetRenderer(), 255, 255, 255, 255);
@@ -44,9 +45,22 @@ void PlayScene::Update()
 	//m_pStarShip->GetTree()->GetLOSNode()->SetLOS(m_pStarShip->checkAgentLOSTOTarget(m_pTarget, m_pObstacles));
 
 	//setup rang combat
-	m_pStarShip->GetTree()->GetEnemyHealthNode()->SetHealth(m_pStarShip->GetHealth() > 25);
-	m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(false);
-	m_pStarShip->checkAgentLOSTOTarget(m_pTarget, m_pObstacles);	
+	if (deadSir == false) {
+		m_pStarShip->GetTree()->GetEnemyHealthNode()->SetHealth(m_pStarShip->GetHealth() > 25);
+		m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(false);
+		m_pStarShip->checkAgentLOSTOTarget(m_pTarget, m_pObstacles);
+
+
+		float distance = Util::Distance(m_pStarShip->GetTransform()->position, m_pTarget->GetTransform()->position);
+
+
+		m_pStarShip->GetTree()->GetPlayerDetectedNode()->SetDetected(distance < 300);
+
+
+		m_pStarShip->GetTree()->GetRangedCombatNode()->SetIsWithinCombatRange(distance >= 200 && distance <= 350);
+
+	}
+
 	
 	//setup rang combat
 	m_pStarShip2->GetTree()->GetEnemyHealthNode()->SetHealth(m_pStarShip2->GetHealth() > 25);
@@ -54,17 +68,14 @@ void PlayScene::Update()
 	m_pStarShip2->checkAgentLOSTOTarget(m_pTarget, m_pObstacles);
 
 	//distance check
-	float distance = Util::Distance(m_pStarShip->GetTransform()->position, m_pTarget->GetTransform()->position);
 	float distance2 = Util::Distance(m_pStarShip2->GetTransform()->position, m_pTarget->GetTransform()->position);
 
 	//radius detection
-	m_pStarShip->GetTree()->GetPlayerDetectedNode()->SetDetected(distance < 300);
 	m_pStarShip2->GetTree()->GetPlayerDetectedNode()->SetDetected(distance2 < 300);
 
 
 	//within los distance
-	m_pStarShip->GetTree()->GetRangedCombatNode()->SetIsWithinCombatRange(distance >= 200 && distance <= 350);
-	m_pStarShip2->GetTree()->GetCloseCombatNode()->SetIsWithinCombatRange(distance2 >= 200 && distance <= 350);
+	m_pStarShip2->GetTree()->GetCloseCombatNode()->SetIsWithinCombatRange(distance2 >= 200 && distance2 <= 350);
 
 	switch(m_LOSMode)
 	{
@@ -72,7 +83,9 @@ void PlayScene::Update()
 		m_checkAllNodesWithTarget(m_pTarget);
 		break;
 	case LOSMode::SHIP:
+		if (deadSir == false)
 		m_checkAllNodesWithTarget(m_pStarShip);
+
 		m_checkAllNodesWithTarget(m_pStarShip2);
 		break;
 	case LOSMode::BOTH:
@@ -88,6 +101,21 @@ void PlayScene::Update()
 	for (auto torpedo : m_pTorpedoesK) {
 
 		CollisionManager::CircleAABBCheck(torpedo, m_pTarget);
+//		CollisionManager::CircleAABBCheck(m_pTorpedoes, m_pStarShip);
+
+
+	}
+	for (auto torpedo : m_pTorpedoes) {
+		
+		if (CollisionManager::CircleAABBCheck(torpedo, m_pStarShip)) {
+
+		//	m_pStarShip = nullptr;
+			//deadSir = true;
+		//	RemoveChild(m_pStarShip);
+			//this->RemoveChild(m_pStarShip);
+		}
+		CollisionManager::CircleAABBCheck(torpedo, m_pStarShip2);
+		//		CollisionManager::CircleAABBCheck(m_pTorpedoes, m_pStarShip);
 
 
 	}
@@ -149,32 +177,46 @@ void PlayScene::HandleEvents()
 
 		//Game::Instance().ChangeSceneState(SceneState::END);
 	}
+	
+	GetPlayerInput();
 
-	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_W)) {
-		//m_pStarShip->GetTransform()->position.y += 1;
-		m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(0.0f, -5.0f);
-	}
-	
-	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_A)) {
-		//m_pStarShip->GetTransform()->position.y += 1;
-		m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(-5.0f, 0.0f);
-	}
-	
-	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_S)) {
-		//m_pStarShip->GetTransform()->position.y += 1;
-		m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(0.0f, 5.0f);
-	}
-	
-	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_D)) {
-		//m_pStarShip->GetTransform()->position.y += 1;
-		m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(5.0f, 0.0f);
-	}
+	GetKeyboardInput();
+
+	//if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_W)) {
+	//	//m_pStarShip->GetTransform()->position.y += 1;
+	//	m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(0.0f, -5.0f);
+	//}
+	//
+	//if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_A)) {
+	//	//m_pStarShip->GetTransform()->position.y += 1;
+	//	m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_LEFT);
+	//	m_playerFacingRight = false;
+	//	m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(-5.0f, 0.0f);
+	//}
+	//
+	//if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_S)) {
+	//	//m_pStarShip->GetTransform()->position.y += 1;
+	//	m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(0.0f, 5.0f);
+	//}
+	//
+	//if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_D)) {
+	//	//m_pStarShip->GetTransform()->position.y += 1;
+	//	m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+	//	m_playerFacingRight = true;
+	//	m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(5.0f, 0.0f);
+	//}
+
+
+
 }
 
 void PlayScene::Start()
 {
 	// Set GUI Title
 	m_guiTitle = "Lab 8";
+
+	m_pCurrentInputType = static_cast<int>(InputType::KEYBOARD_MOUSE);
+
 
 	// Setup a few more fields
 	m_LOSMode = LOSMode::TARGET;
@@ -184,6 +226,11 @@ void PlayScene::Start()
 	// Add Game Objects
 	m_pBackground = new Background();
 	AddChild(m_pBackground, 0);
+
+	const SDL_Color blue = { 0, 0, 255, 255 };
+	m_pInstructionsLabel = new Label("Enemies Remaining", "Consolas", 40, blue, glm::vec2(400.0f, 120.0f));
+	m_pInstructionsLabel->SetParent(this);
+	AddChild(m_pInstructionsLabel);
 
 	m_pTarget = new Target();
 	m_pTarget->GetTransform()->position = glm::vec2(500.0f, 300.0f);
@@ -493,4 +540,214 @@ void PlayScene::m_setPathNodeLOSDistance(const int distance) const
 	{
 		path_node->SetLOSDistance(static_cast<float>(distance));
 	}
+}
+
+void PlayScene::GetPlayerInput()
+{
+	switch (m_pCurrentInputType)
+	{
+	case static_cast<int>(InputType::GAME_CONTROLLER):
+	{
+		// handle player movement with GameController
+		if (SDL_NumJoysticks() > 0)
+		{
+			if (EventManager::Instance().GetGameController(0) != nullptr)
+			{
+				constexpr auto dead_zone = 10000;
+				if (EventManager::Instance().GetGameController(0)->STICK_LEFT_HORIZONTAL > dead_zone)
+				{
+					m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+					m_playerFacingRight = true;
+				}
+				else if (EventManager::Instance().GetGameController(0)->STICK_LEFT_HORIZONTAL < -dead_zone)
+				{
+					m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_LEFT);
+					m_playerFacingRight = false;
+				}
+				else
+				{
+					if (m_playerFacingRight)
+					{
+						m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_RIGHT);
+					}
+					else
+					{
+						m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_LEFT);
+					}
+				}
+			}
+		}
+	}
+	break;
+	case static_cast<int>(InputType::KEYBOARD_MOUSE):
+	{
+		// handle player movement with mouse and keyboard
+		if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_A))
+		{
+			m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_LEFT);
+			m_playerFacingRight = false;
+
+
+			m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(-5.0f, 0.0f);
+
+
+		}
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_D))
+		{
+			m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+			m_playerFacingRight = true;
+
+
+			m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(5.0f, 0.0f);
+
+
+
+		}
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_W))
+		{
+			//m_pPlayer->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+			//m_playerFacingRight = true;
+
+
+			m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(0.0f, -5.0f);
+
+
+
+		}
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_S))
+		{
+			//m_pPlayer->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+			//m_playerFacingRight = true;
+
+
+			m_pTarget->GetTransform()->position = m_pTarget->GetTransform()->position + glm::vec2(0.0f, 5.0f);
+
+
+
+		}
+
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_H))
+		{
+			//m_pPlayer->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+			//m_playerFacingRight = true;
+			if (m_isGridEnabled == true) {
+				m_isGridEnabled = false;
+			}
+			else if (m_isGridEnabled == false) {
+				m_isGridEnabled = true;
+			}
+			m_toggleGrid(m_isGridEnabled);
+
+			//m_pPlayer->GetTransform()->position = m_pPlayer->GetTransform()->position + glm::vec2(0.0f, 5.0f);
+
+
+
+		}
+
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_K))
+		{
+
+
+		}
+
+		else
+		{
+			if (m_playerFacingRight)
+			{
+				m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_RIGHT);
+			}
+			else
+			{
+				m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_LEFT);
+			}
+		}
+	}
+	break;
+	case static_cast<int>(InputType::ALL):
+	{
+		if (SDL_NumJoysticks() > 0)
+		{
+			if (EventManager::Instance().GetGameController(0) != nullptr)
+			{
+				constexpr auto dead_zone = 10000;
+				if (EventManager::Instance().GetGameController(0)->STICK_LEFT_HORIZONTAL > dead_zone
+					|| EventManager::Instance().IsKeyDown(SDL_SCANCODE_D))
+				{
+					m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+					m_playerFacingRight = true;
+				}
+				else if (EventManager::Instance().GetGameController(0)->STICK_LEFT_HORIZONTAL < -dead_zone
+					|| EventManager::Instance().IsKeyDown(SDL_SCANCODE_A))
+				{
+					m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_LEFT);
+					m_playerFacingRight = false;
+				}
+				else
+				{
+					if (m_playerFacingRight)
+					{
+						m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_RIGHT);
+					}
+					else
+					{
+						m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_LEFT);
+					}
+				}
+			}
+		}
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_A))
+		{
+			m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_LEFT);
+			m_playerFacingRight = false;
+		}
+		else if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_D))
+		{
+			m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_RUN_RIGHT);
+			m_playerFacingRight = true;
+		}
+		else
+		{
+			if (m_playerFacingRight)
+			{
+				m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_RIGHT);
+			}
+			else
+			{
+				m_pTarget->SetAnimationState(PlayerAnimationState::PLAYER_IDLE_LEFT);
+			}
+		}
+	}
+	break;
+	}
+}
+
+void PlayScene::GetKeyboardInput()
+{
+	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_ESCAPE))
+	{
+		Game::Instance().Quit();
+	}
+
+	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_1))
+	{
+		Game::Instance().ChangeSceneState(SceneState::START);
+	}
+
+	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_2))
+	{
+		Game::Instance().ChangeSceneState(SceneState::PLAY);
+	}
+
+	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_3))
+	{
+		Game::Instance().ChangeSceneState(SceneState::NODE);
+	}
+
+	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_4))
+	{
+		Game::Instance().ChangeSceneState(SceneState::END);
+	}
+	//if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_H)) {
+
+	//}
 }

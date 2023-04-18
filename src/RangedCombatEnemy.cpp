@@ -43,6 +43,9 @@ m_fireCounter(0), m_fireCounterMax(60), m_pScene(scene)
 	m_tree = new DecisionTree(this);
 	m_buildTree();
 	m_tree->Display();
+
+	SetType(GameObjectType::SPACE_SHIP);
+
 }
 
 RangedCombatEnemy::~RangedCombatEnemy()
@@ -265,7 +268,9 @@ void RangedCombatEnemy::Attack()
 
 DecisionTree* RangedCombatEnemy::GetTree() const
 {
-	return m_tree;
+	if (this != nullptr) {
+		return m_tree;
+	}
 }
 
 void RangedCombatEnemy::m_move()

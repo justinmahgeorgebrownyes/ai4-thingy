@@ -16,6 +16,7 @@
 #include "Background.h"
 #include "Torpedo.h"
 #include "TorpedoK.h"
+#include "Label.h"
 
 
 
@@ -34,11 +35,18 @@ public:
 	RangedCombatEnemy* m_pStarShip;
 	CloseCombatEnemy* m_pStarShip2;
 
+	bool m_playerFacingRight{};
+	
+
+	bool deadSir = false;
+
 	//lab 8
 	void SpawnEnemyTorpedo();
 	Target* GetTarget() const;
 
 private:
+	Label* m_pStartLabel{};
+	Label* m_pInstructionsLabel{};
 	// IMGUI Function
 	int leCount;
 
@@ -89,6 +97,11 @@ private:
 	//lab 8
 	std::vector<Torpedo*> m_pTorpedoes;
 	std::vector<TorpedoK*> m_pTorpedoesK;
+
+	// Input Control
+	int m_pCurrentInputType{};
+	void GetPlayerInput();
+	void GetKeyboardInput();
 };
 
 #endif /* defined (__PLAY_SCENE__) */

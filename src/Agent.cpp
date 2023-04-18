@@ -180,6 +180,7 @@ void Agent::SetWhiskerAngle(const float angle)
 
 int Agent::GetHealth() const
 {
+	if(this != nullptr)
 	return m_health;
 }
 
@@ -239,8 +240,11 @@ void Agent::SetLOSDistance(const float distance)
 
 void Agent::SetHasLOS(const bool state)
 {
-	m_hasLOS = state;
-	m_LOSColour = (m_hasLOS) ? glm::vec4(0, 1, 0, 1) : glm::vec4(1, 0, 0, 1);
+	if (this != nullptr) {
+		m_hasLOS = state;
+		m_LOSColour = (m_hasLOS) ? glm::vec4(0, 1, 0, 1) : glm::vec4(1, 0, 0, 1);
+	}
+
 }
 
 void Agent::SetHasLOS(const bool state, glm::vec4 colour)

@@ -292,6 +292,11 @@ bool CollisionManager::CircleAABBCheck(GameObject* object1, GameObject* object2)
 				SoundManager::Instance().SetSoundVolume(25);
 				SoundManager::Instance().PlaySoundFX("thunder", 0);
 				break;
+			case GameObjectType::SPACE_SHIP:
+				std::cout << "Hit Enemy Good Sir!" << std::endl;
+				SoundManager::Instance().SetSoundVolume(25);
+				SoundManager::Instance().PlaySoundFX("thunder", 0);
+				break;
 			//case GameObjectType::SHIP:
 			//{
 			//	SoundManager::Instance().PlaySoundFX("thunder", 0);

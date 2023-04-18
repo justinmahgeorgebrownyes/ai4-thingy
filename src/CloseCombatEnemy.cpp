@@ -40,6 +40,9 @@ m_turnRate(5.0f), m_accelerationRate(2.0f), m_startPosition(glm::vec2(300.0f, 50
 	m_tree = new DecisionTree(this);
 	m_buildTree();
 	m_tree->Display();
+
+	SetType(GameObjectType::SPACE_SHIP);
+
 }
 
 CloseCombatEnemy::~CloseCombatEnemy()
