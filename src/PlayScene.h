@@ -17,6 +17,11 @@
 #include "Torpedo.h"
 #include "TorpedoK.h"
 #include "Label.h"
+#include <random>
+#include <cstdlib>
+#include <stdlib.h>
+#include "InputType.h"
+#include <math.h>
 
 
 
@@ -36,9 +41,13 @@ public:
 	CloseCombatEnemy* m_pStarShip2;
 
 	bool m_playerFacingRight{};
-	
 
-	bool deadSir = false;
+//	var rnd = new Random();
+//	private static Random random = new Random();
+
+
+
+	bool gameOver = false;
 
 	//lab 8
 	void SpawnEnemyTorpedo();
@@ -65,7 +74,7 @@ private:
 
 	//7.2
 	//CloseCombatEnemy* m_pStarShip;
-	
+
 
 
 	void BuildObstaclePool();
@@ -95,6 +104,7 @@ private:
 
 
 	//lab 8
+	
 	std::vector<Torpedo*> m_pTorpedoes;
 	std::vector<TorpedoK*> m_pTorpedoesK;
 
@@ -102,6 +112,9 @@ private:
 	int m_pCurrentInputType{};
 	void GetPlayerInput();
 	void GetKeyboardInput();
+
+	int score = 0;
+
 };
 
 #endif /* defined (__PLAY_SCENE__) */

@@ -8,7 +8,10 @@
 class Torpedo final : public Sprite
 {
 public:
-	Torpedo(float speed = 0.0f);
+	bool torpedoRight;
+	void SetTorpedoRight(bool leTorp);
+
+	Torpedo(float speed = 0.0f, bool letrop = false);
 	~Torpedo() override;
 
 	// Life Cycle Methods

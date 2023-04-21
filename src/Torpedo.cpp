@@ -1,12 +1,19 @@
 #include "Torpedo.h"
 #include "TextureManager.h"
 
-Torpedo::Torpedo(const float speed): m_currentAnimationState(TorpedoAnimationState::FIRED), m_speed(speed)
+void Torpedo::SetTorpedoRight(bool leTorp)
+{
+	torpedoRight = leTorp;
+}
+
+Torpedo::Torpedo(const float speed, bool leTorp): m_currentAnimationState(TorpedoAnimationState::FIRED), m_speed(speed)
 {
 	TextureManager::Instance().LoadSpriteSheet(
 		"../Assets/sprites/torpedo.txt",
 		"../Assets/sprites/torpedo.png", 
 		"torpedosheet");
+
+	SetTorpedoRight(leTorp);
 
 	SetSpriteSheet(TextureManager::Instance().GetSpriteSheet("torpedosheet"));
 	
@@ -44,7 +51,12 @@ void Torpedo::Draw()
 
 void Torpedo::Update()
 {
-	GetTransform()->position.x += m_speed;
+	if (torpedoRight) {
+		GetTransform()->position.x += m_speed;
+	}
+	else {
+		GetTransform()->position.x -= m_speed;
+	}
 }
 
 void Torpedo::Clean()

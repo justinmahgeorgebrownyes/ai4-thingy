@@ -9,7 +9,9 @@
 #include "Renderer.h"
 #include "Util.h"
 #include <fstream>
-#include "InputType.h"
+
+using namespace std;
+
 
 PlayScene::PlayScene()
 {
@@ -41,11 +43,12 @@ void PlayScene::Draw()
 void PlayScene::Update()
 {
 	UpdateDisplayList();
+
 	//m_checkAgentLOS(m_pStarShip, m_pTarget);
 	//m_pStarShip->GetTree()->GetLOSNode()->SetLOS(m_pStarShip->checkAgentLOSTOTarget(m_pTarget, m_pObstacles));
 
 	//setup rang combat
-	if (deadSir == false) {
+	if (gameOver == false) {
 		m_pStarShip->GetTree()->GetEnemyHealthNode()->SetHealth(m_pStarShip->GetHealth() > 25);
 		m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(false);
 		m_pStarShip->checkAgentLOSTOTarget(m_pTarget, m_pObstacles);
@@ -59,23 +62,30 @@ void PlayScene::Update()
 
 		m_pStarShip->GetTree()->GetRangedCombatNode()->SetIsWithinCombatRange(distance >= 200 && distance <= 350);
 
+
+		//setup rang combat
+		m_pStarShip2->GetTree()->GetEnemyHealthNode()->SetHealth(m_pStarShip2->GetHealth() > 25);
+		m_pStarShip2->GetTree()->GetEnemyHitNode()->SetIsHit(false);
+		m_pStarShip2->checkAgentLOSTOTarget(m_pTarget, m_pObstacles);
+
+		//distance check
+		float distance2 = Util::Distance(m_pStarShip2->GetTransform()->position, m_pTarget->GetTransform()->position);
+
+		//radius detection
+		m_pStarShip2->GetTree()->GetPlayerDetectedNode()->SetDetected(distance2 < 300);
+
+
+		//within los distance
+		m_pStarShip2->GetTree()->GetCloseCombatNode()->SetIsWithinCombatRange(distance2 >= 200 && distance2 <= 350);
 	}
+	if (score > 2) {
+		gameOver = true;
+		Clean();
+		Game::Instance().ChangeSceneState(SceneState::END);
 
+	}
 	
-	//setup rang combat
-	m_pStarShip2->GetTree()->GetEnemyHealthNode()->SetHealth(m_pStarShip2->GetHealth() > 25);
-	m_pStarShip2->GetTree()->GetEnemyHitNode()->SetIsHit(false);
-	m_pStarShip2->checkAgentLOSTOTarget(m_pTarget, m_pObstacles);
-
-	//distance check
-	float distance2 = Util::Distance(m_pStarShip2->GetTransform()->position, m_pTarget->GetTransform()->position);
-
-	//radius detection
-	m_pStarShip2->GetTree()->GetPlayerDetectedNode()->SetDetected(distance2 < 300);
-
-
-	//within los distance
-	m_pStarShip2->GetTree()->GetCloseCombatNode()->SetIsWithinCombatRange(distance2 >= 200 && distance2 <= 350);
+	
 
 	switch(m_LOSMode)
 	{
@@ -83,10 +93,10 @@ void PlayScene::Update()
 		m_checkAllNodesWithTarget(m_pTarget);
 		break;
 	case LOSMode::SHIP:
-		if (deadSir == false)
-		m_checkAllNodesWithTarget(m_pStarShip);
-
-		m_checkAllNodesWithTarget(m_pStarShip2);
+		if (gameOver == false) {
+			m_checkAllNodesWithTarget(m_pStarShip);
+			m_checkAllNodesWithTarget(m_pStarShip2);
+		}
 		break;
 	case LOSMode::BOTH:
 		m_checkAllNodesWithBoth();
@@ -98,27 +108,39 @@ void PlayScene::Update()
 
 
 	//collison check between tarpeodok and target
-	for (auto torpedo : m_pTorpedoesK) {
+	if (gameOver == false) {
 
-		CollisionManager::CircleAABBCheck(torpedo, m_pTarget);
-//		CollisionManager::CircleAABBCheck(m_pTorpedoes, m_pStarShip);
+		for (auto torpedo : m_pTorpedoesK) {
+
+			CollisionManager::CircleAABBCheck(torpedo, m_pTarget);
+
+			//		CollisionManager::CircleAABBCheck(m_pTorpedoes, m_pStarShip);
 
 
-	}
-	for (auto torpedo : m_pTorpedoes) {
-		
-		if (CollisionManager::CircleAABBCheck(torpedo, m_pStarShip)) {
-
-		//	m_pStarShip = nullptr;
-			//deadSir = true;
-		//	RemoveChild(m_pStarShip);
-			//this->RemoveChild(m_pStarShip);
 		}
-		CollisionManager::CircleAABBCheck(torpedo, m_pStarShip2);
-		//		CollisionManager::CircleAABBCheck(m_pTorpedoes, m_pStarShip);
+		for (auto torpedo : m_pTorpedoes) {
 
+			if (CollisionManager::CircleAABBCheck(torpedo, m_pStarShip)) {
+				m_pStarShip->GetTransform()->position = glm::vec2(140, 40);
+				score++;
+				//	m_pStarShip = nullptr;
+					//deadSir = true;
+				//	RemoveChild(m_pStarShip);
+					//this->RemoveChild(m_pStarShip);
+			}
+			if (CollisionManager::CircleAABBCheck(torpedo, m_pStarShip2)) {
+
+				m_pStarShip2->GetTransform()->position = glm::vec2(140, 40);
+				score++;
+
+			}
+			//		CollisionManager::CircleAABBCheck(m_pTorpedoes, m_pStarShip);
+
+
+		}
 
 	}
+	
 
 }
 
@@ -130,6 +152,8 @@ void PlayScene::Clean()
 void PlayScene::HandleEvents()
 {
 	EventManager::Instance().Update();
+
+	
 
 	if (EventManager::Instance().IsKeyDown(SDL_SCANCODE_ESCAPE))
 	{
@@ -148,8 +172,19 @@ void PlayScene::HandleEvents()
 	
 	if (EventManager::Instance().KeyPressed(SDL_SCANCODE_F))
 	{
+		
 		//torpedo will fie
-		m_pTorpedoes.push_back(new Torpedo(5.0f));
+		
+		if (m_playerFacingRight) {
+			m_pTorpedoes.push_back(new Torpedo(5.0f));
+			m_pTorpedoes[m_pTorpedoes.size() - 1]->SetTorpedoRight(true);
+		}
+		else {
+			m_pTorpedoes.push_back(new Torpedo(5.0f));
+
+		}
+
+
 		m_pTarget->SetCurrentDirection(glm::vec2(1.0f, 0.0f));
 		m_pTorpedoes.back()->GetTransform()->position = m_pTarget->GetTransform()->position + m_pTarget->GetCurrentDirection() * 30.0f;
 		SoundManager::Instance().SetSoundVolume(50);
@@ -161,19 +196,25 @@ void PlayScene::HandleEvents()
 
 	if (EventManager::Instance().KeyPressed(SDL_SCANCODE_K))
 	{
-		m_pStarShip->TakeDamage(10);
-		m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(true);
-		std::cout << "Starship at: " << m_pStarShip->GetHealth() << "% " << std::endl;
+		if (gameOver == false) {
+			m_pStarShip->TakeDamage(10);
+			m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(true);
+			std::cout << "Starship at: " << m_pStarShip->GetHealth() << "% " << std::endl;
+		}
+		
 		//Game::Instance().ChangeSceneState(SceneState::END);
 	}
 
 	if (EventManager::Instance().KeyPressed(SDL_SCANCODE_R))
 	{
-		m_pStarShip->SetHealth(100);
-		m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(false);
-		m_pStarShip->GetTree()->GetPlayerDetectedNode()->SetDetected(false);
-		m_pStarShip->GetTransform()->position = glm::vec2(40.0f, 40.0f);
-		std::cout << "Conditions Reset" << std::endl;
+		if (gameOver == false) {
+			m_pStarShip->SetHealth(100);
+			m_pStarShip->GetTree()->GetEnemyHitNode()->SetIsHit(false);
+			m_pStarShip->GetTree()->GetPlayerDetectedNode()->SetDetected(false);
+			m_pStarShip->GetTransform()->position = glm::vec2(40.0f, 40.0f);
+			std::cout << "Conditions Reset" << std::endl;
+		}
+		
 
 		//Game::Instance().ChangeSceneState(SceneState::END);
 	}
@@ -227,10 +268,6 @@ void PlayScene::Start()
 	m_pBackground = new Background();
 	AddChild(m_pBackground, 0);
 
-	const SDL_Color blue = { 0, 0, 255, 255 };
-	m_pInstructionsLabel = new Label("Enemies Remaining", "Consolas", 40, blue, glm::vec2(400.0f, 120.0f));
-	m_pInstructionsLabel->SetParent(this);
-	AddChild(m_pInstructionsLabel);
 
 	m_pTarget = new Target();
 	m_pTarget->GetTransform()->position = glm::vec2(500.0f, 300.0f);
@@ -279,20 +316,23 @@ void PlayScene::Start()
 
 void PlayScene::SpawnEnemyTorpedo()
 {
-	//set spam point front of our d7
-	glm::vec2 spawn_point = m_pStarShip->GetTransform()->position + m_pStarShip->GetCurrentDirection() * 30.0f;
-	glm::vec2 spawn_point2 = m_pStarShip2->GetTransform()->position + m_pStarShip2->GetCurrentDirection() * 30.0f;
+	if (gameOver == false) {
+		//set spam point front of our d7
+		glm::vec2 spawn_point = m_pStarShip->GetTransform()->position + m_pStarShip->GetCurrentDirection() * 30.0f;
+		glm::vec2 spawn_point2 = m_pStarShip2->GetTransform()->position + m_pStarShip2->GetCurrentDirection() * 30.0f;
 
-	//set the direction of the torpedo
-	glm::vec2 torpedo_direction = Util::Normalize(m_pTarget->GetTransform()->position - spawn_point);
-	glm::vec2 torpedo_direction2 = Util::Normalize(m_pTarget->GetTransform()->position - spawn_point2);
+		//set the direction of the torpedo
+		glm::vec2 torpedo_direction = Util::Normalize(m_pTarget->GetTransform()->position - spawn_point);
+		glm::vec2 torpedo_direction2 = Util::Normalize(m_pTarget->GetTransform()->position - spawn_point2);
 
-	//spawn the torpedo
-	m_pTorpedoesK.push_back(new TorpedoK(5.0f, torpedo_direction));
-	m_pTorpedoesK.back()->GetTransform()->position = spawn_point;
-	m_pTorpedoesK.back()->GetTransform()->position = spawn_point2;
-	SoundManager::Instance().SetSoundVolume(50);
-	SoundManager::Instance().PlaySoundFX("torpedo_k");
+		//spawn the torpedo
+		m_pTorpedoesK.push_back(new TorpedoK(5.0f, torpedo_direction));
+		m_pTorpedoesK.back()->GetTransform()->position = spawn_point;
+		m_pTorpedoesK.back()->GetTransform()->position = spawn_point2;
+		SoundManager::Instance().SetSoundVolume(50);
+		SoundManager::Instance().PlaySoundFX("torpedo_k");
+	}
+
 
 
 

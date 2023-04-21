@@ -230,6 +230,7 @@ void Agent::SetTargetPosition(const glm::vec2 new_position)
 
 void Agent::SetCurrentDirection(const glm::vec2 new_direction)
 {
+	if(this != nullptr)
 	m_currentDirection = new_direction;
 }
 
